@@ -35,6 +35,22 @@ const authRepository: IAuthRepository = {
         );
         return rows[0];
     },
+
+    deleteExpiredUnverified: async (client) => {
+        const { rows } = await getExecutor(client).query<{
+            profilePicture: string | null;
+        }>(
+            `DELETE FROM identity.users u
+         USING identity.auth a
+         WHERE a.user_id = u.id
+           AND a.is_verified = false
+           AND a.unverified_expires_at < now()
+         RETURNING u.profile_picture AS "profilePicture"`,
+        );
+        return rows
+            .map((r) => r.profilePicture)
+            .filter((p): p is string => p !== null);
+    },
 };
 
 export default authRepository;

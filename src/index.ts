@@ -6,6 +6,7 @@ import connectDB, { disconnectDB } from "./config/database";
 import connectMailer from "./config/brevo";
 import { connectRedis } from "./config/redis";
 import { connectStorage } from "./config/storage";
+import { startCleanup, stopCleanup } from "./common/utils/database/cleanup";
 
 const PORT = process.env.PORT || 5000;
 
@@ -20,7 +21,10 @@ const start = async () => {
             console.log(`🛫 Server is running on http://localhost:${PORT}`);
         });
 
+        startCleanup();
+
         const shutdown = () => {
+            stopCleanup();
             server.close(() => {
                 disconnectDB()
                     .then(() => process.exit(0))
