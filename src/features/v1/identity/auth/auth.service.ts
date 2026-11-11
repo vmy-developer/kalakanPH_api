@@ -1,7 +1,11 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-import type { RegisterData, VerifyEmailInput } from "./dtos/auth.data.dto";
+import type {
+    RegisterData,
+    ResendVerificationInput,
+    VerifyEmailInput,
+} from "./dtos/auth.data.dto";
 import userRepository from "../user/user.repository";
 import authRepository from "./auth.repository";
 import type { IUser } from "../user/types/user.interface";
@@ -143,4 +147,36 @@ export const verifyEmailService = async ({ token }: VerifyEmailInput) => {
     sendInBackground("welcome", sendWelcomeEmail(user.email, user.username));
 
     return { userId: user.userId, isVerified: true };
+};
+
+export const resendVerificationService = async ({
+    email,
+}: ResendVerificationInput): Promise<void> => {
+    const account = await authRepository.findByEmail(email);
+
+    if (!account) {
+        throw new BadRequestError(
+            "Resend verification: no account for this email",
+        );
+    }
+
+    if (account.isVerified) {
+        throw new BadRequestError(
+            "Resend verification: account already verified",
+        );
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    await authRepository.updateVerificationToken(
+        account.authId,
+        token,
+        tokenExpiry,
+    );
+
+    sendInBackground(
+        "verification",
+        sendVerificationEmail(account.email, account.username, token),
+    );
 };

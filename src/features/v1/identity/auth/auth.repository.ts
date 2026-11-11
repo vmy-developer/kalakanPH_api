@@ -76,6 +76,35 @@ const authRepository: IAuthRepository = {
         );
         return rows[0] ?? null;
     },
+
+    findByEmail: async (email, client) => {
+        const { rows } = await getExecutor(client).query<{
+            authId: string;
+            email: string;
+            username: string;
+            isVerified: boolean;
+        }>(
+            `SELECT a.id AS "authId",
+                u.email,
+                u.username,
+                a.is_verified AS "isVerified"
+         FROM identity.auth a
+         JOIN identity.users u ON u.id = a.user_id
+         WHERE u.email = $1`,
+            [email],
+        );
+        return rows[0] ?? null;
+    },
+
+    updateVerificationToken: async (authId, token, tokenExpiry, client) => {
+        await getExecutor(client).query(
+            `UPDATE identity.auth
+         SET verification_token = $2,
+             verification_token_expiry = $3
+         WHERE id = $1`,
+            [authId, token, tokenExpiry],
+        );
+    },
 };
 
 export default authRepository;

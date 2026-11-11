@@ -60,6 +60,11 @@ export function createLimiters(client: RedisClient) {
             limit: 20,
         }),
         verify: make("verify", { windowMs: 15 * 60_000, limit: 20 }),
+        resendVerification: make("resend-verification", {
+            windowMs: 60 * 60_000,
+            limit: 3,
+            byEmail: true,
+        }),
     };
 }
 

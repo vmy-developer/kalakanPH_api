@@ -1,6 +1,14 @@
 import express from "express";
-import { registerController, verifyEmailController } from "./auth.controller";
-import { RegisterUserSchema, VerifyEmailSchema } from "./dtos/auth.data.dto";
+import {
+    registerController,
+    resendVerificationController,
+    verifyEmailController,
+} from "./auth.controller";
+import {
+    RegisterUserSchema,
+    ResendVerificationSchema,
+    VerifyEmailSchema,
+} from "./dtos/auth.data.dto";
 import { limiters } from "../../../../common/middleware/rateLimiter";
 import { validate } from "../../../../common/middleware/validate";
 import { uploadProfilePicture } from "../../../../common/utils/storage/upload";
@@ -20,6 +28,13 @@ router.get(
     limiters.verify,
     validate(VerifyEmailSchema, "query"),
     verifyEmailController,
+);
+
+router.post(
+    "/resend-verification",
+    limiters.resendVerification,
+    validate(ResendVerificationSchema),
+    resendVerificationController,
 );
 
 export default router;
