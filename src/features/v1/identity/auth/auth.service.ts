@@ -1,12 +1,15 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-import type { RegisterAuthInput } from "./dtos/auth.data.dto";
+import type { RegisterData, VerifyEmailInput } from "./dtos/auth.data.dto";
 import userRepository from "../user/user.repository";
 import authRepository from "./auth.repository";
 import type { IUser } from "../user/types/user.interface";
 import type { IAuth } from "./types/auth.interface";
-import { ConflictError } from "../../../../common/error/errorStatusCode";
+import {
+    BadRequestError,
+    ConflictError,
+} from "../../../../common/error/errorStatusCode";
 import { pool } from "../../../../config/database";
 import { sendVerificationEmail } from "../../../../common/utils/mail/sendVerificationEmail";
 import { sendInBackground } from "../../../../common/utils/mail/sendMail";
@@ -15,8 +18,7 @@ import {
     getProfilePictureUrl,
     uploadProfilePicture,
 } from "../../../../common/utils/storage/profilePicture.storage";
-
-export type RegisterData = Omit<RegisterAuthInput, "confirmPassword">;
+import { sendWelcomeEmail } from "../../../../common/utils/mail/sendWelcomeEmail";
 
 export const registerService = async (
     {
@@ -129,4 +131,16 @@ export const registerService = async (
         email: user.email,
         isVerified: auth.isVerified,
     };
+};
+
+export const verifyEmailService = async ({ token }: VerifyEmailInput) => {
+    const user = await authRepository.verifyByToken(token);
+
+    if (!user) {
+        throw new BadRequestError("Invalid or expired verification link");
+    }
+
+    sendInBackground("welcome", sendWelcomeEmail(user.email, user.username));
+
+    return { userId: user.userId, isVerified: true };
 };

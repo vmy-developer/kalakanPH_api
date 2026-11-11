@@ -59,6 +59,7 @@ export function createLimiters(client: RedisClient) {
             windowMs: 60 * 60_000,
             limit: 20,
         }),
+        verify: make("verify", { windowMs: 15 * 60_000, limit: 20 }),
     };
 }
 

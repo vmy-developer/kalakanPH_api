@@ -51,6 +51,31 @@ const authRepository: IAuthRepository = {
             .map((r) => r.profilePicture)
             .filter((p): p is string => p !== null);
     },
+
+    verifyByToken: async (token, client) => {
+        const { rows } = await getExecutor(client).query<{
+            userId: string;
+            email: string;
+            username: string;
+        }>(
+            `WITH verified AS (
+             UPDATE identity.auth
+             SET is_verified = true,
+                 verification_token = NULL,
+                 verification_token_expiry = NULL,
+                 unverified_expires_at = NULL
+             WHERE verification_token = $1
+               AND verification_token_expiry > now()
+               AND is_verified = false
+             RETURNING user_id
+         )
+         SELECT u.id AS "userId", u.email, u.username
+         FROM verified v
+         JOIN identity.users u ON u.id = v.user_id`,
+            [token],
+        );
+        return rows[0] ?? null;
+    },
 };
 
 export default authRepository;

@@ -96,7 +96,9 @@ export const LoginSchema = z.object({
     password: z.string().min(1, "Password is required"),
 });
 
-export type RegisterAuthInput = z.infer<typeof RegisterUserSchema>;
+type RegisterAuthInput = z.infer<typeof RegisterUserSchema>;
+export type RegisterData = Omit<RegisterAuthInput, "confirmPassword">;
+
 export type VerifyEmailInput = z.infer<typeof VerifyEmailSchema>;
 export type ResendVerificationInput = z.infer<typeof ResendVerificationSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
