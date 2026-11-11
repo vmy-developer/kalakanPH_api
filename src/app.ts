@@ -1,8 +1,13 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import { pool } from "./config/db";
+import { pool } from "./config/database";
+import { checkRedis } from "./config/redis";
+import { checkMailer } from "./config/brevo";
+import { checkStorage } from "./config/storage";
+import { errorHandler } from "./common/middleware/errorHandler";
+import apiRouter from "./router";
 
 const app = express();
 
@@ -23,13 +28,31 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get("/health", async (_req, res) => {
-    try {
-        await pool.query("SELECT 1");
-        res.status(200).json({ status: "ok" });
-    } catch {
-        res.status(503).json({ status: "unavailable" });
-    }
+    const [database, redis, resend, storage] = await Promise.all([
+        pool.query("SELECT 1").then(
+            () => true,
+            () => false,
+        ),
+        checkRedis(),
+        checkMailer(),
+        checkStorage(),
+    ]);
+
+    const services = {
+        database: database ? "ok" : "unavailable",
+        redis: redis ? "ok" : "unavailable",
+        resend: resend ? "ok" : "unavailable",
+        storage: storage ? "ok" : "unavailable",
+    };
+    const isHealthy = database && redis && resend && storage;
+
+    res.status(isHealthy ? 200 : 503).json({
+        status: isHealthy ? "ok" : "unavailable",
+        services,
+    });
 });
+
+app.use("/api/v1", apiRouter);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
@@ -37,9 +60,6 @@ app.use((_req: Request, res: Response) => {
 });
 
 // Error handler: must be last
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    console.error("💥 Unhandled error:", err);
-    res.status(500).json({ message: "Internal server error" });
-});
+app.use(errorHandler);
 
 export default app;
