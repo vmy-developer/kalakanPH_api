@@ -1,0 +1,21 @@
+import { UserGender } from "./user.enum";
+
+type LoginMethod = "local";
+
+export interface IUser {
+    id: string;
+    loginMethod: LoginMethod;
+    username: string;
+    email: string;
+    contactNumber: string;
+    givenname: string;
+    surname: string;
+    gender: UserGender;
+    address: string;
+    birthdate: Date;
+    profilePicture: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export type CreateUserInput = Omit<IUser, "id" | "createdAt" | "updatedAt">;
