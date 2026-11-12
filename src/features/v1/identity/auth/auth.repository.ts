@@ -102,6 +102,36 @@ const authRepository: IAuthRepository = {
         );
         return rows[0] ?? null;
     },
+
+    findLoginByEmail: async (email, client) => {
+        const { rows } = await getExecutor(client).query<{
+            userId: string;
+            email: string;
+            username: string;
+            passwordHash: string | null;
+            isVerified: boolean | null;
+        }>(
+            `SELECT u.id            AS "userId",
+                u.email,
+                u.username,
+                a.password_hash AS "passwordHash",
+                a.is_verified   AS "isVerified"
+         FROM identity.users u
+         LEFT JOIN identity.auth a ON a.user_id = u.id
+         WHERE u.email = $1`,
+            [email],
+        );
+        return rows[0] ?? null;
+    },
+
+    markLogin: async (userId, client) => {
+        await getExecutor(client).query(
+            `UPDATE identity.auth
+         SET is_online = true, last_login = now()
+         WHERE user_id = $1`,
+            [userId],
+        );
+    },
 };
 
 export default authRepository;

@@ -1,10 +1,15 @@
 import express from "express";
 import {
+    loginController,
     registerController,
     resendVerificationController,
     verifyEmailController,
 } from "./auth.controller";
-import { RegisterUserSchema, VerifyEmailSchema } from "./dtos/auth.data.dto";
+import {
+    LoginSchema,
+    RegisterUserSchema,
+    VerifyEmailSchema,
+} from "./dtos/auth.data.dto";
 import { limiters } from "../../../../common/middleware/rateLimiter";
 import { validate } from "../../../../common/middleware/validate";
 import { uploadProfilePicture } from "../../../../common/utils/storage/upload";
@@ -33,5 +38,7 @@ router.post(
     limiters.resendVerification,
     resendVerificationController,
 );
+
+router.post("/login", limiters.login, validate(LoginSchema), loginController);
 
 export default router;

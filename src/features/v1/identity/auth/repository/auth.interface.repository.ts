@@ -17,4 +17,17 @@ export interface IAuthRepository {
         tokenExpiry: Date,
         client?: PoolClient,
     ): Promise<{ email: string; username: string } | null>;
+
+    findLoginByEmail(
+        email: string,
+        client?: PoolClient,
+    ): Promise<{
+        userId: string;
+        email: string;
+        username: string;
+        passwordHash: string | null;
+        isVerified: boolean | null;
+    } | null>;
+
+    markLogin(userId: string, client?: PoolClient): Promise<void>;
 }

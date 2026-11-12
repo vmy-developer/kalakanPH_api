@@ -65,6 +65,11 @@ export function createLimiters(client: RedisClient) {
             limit: 3,
             byEmail: true,
         }),
+        login: make("login", {
+            windowMs: 15 * 60_000,
+            limit: 10,
+            byEmail: true,
+        }),
     };
 }
 

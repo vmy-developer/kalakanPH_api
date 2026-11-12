@@ -1,7 +1,11 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-import type { RegisterData, VerifyEmailInput } from "./dtos/auth.data.dto";
+import type {
+    LoginInput,
+    RegisterData,
+    VerifyEmailInput,
+} from "./dtos/auth.data.dto";
 import userRepository from "../user/user.repository";
 import authRepository from "./auth.repository";
 import type { IUser } from "../user/types/user.interface";
@@ -9,6 +13,7 @@ import type { IAuth } from "./types/auth.interface";
 import {
     BadRequestError,
     ConflictError,
+    UnauthorizedError,
 } from "../../../../common/error/errorStatusCode";
 import { pool } from "../../../../config/database";
 import { sendVerificationEmail } from "../../../../common/utils/mail/sendVerificationEmail";
@@ -19,6 +24,8 @@ import {
     uploadProfilePicture,
 } from "../../../../common/utils/storage/profilePicture.storage";
 import { sendWelcomeEmail } from "../../../../common/utils/mail/sendWelcomeEmail";
+
+const DUMMY_HASH = bcrypt.hashSync("dummy-password", 10);
 
 export const registerService = async (
     {
@@ -34,8 +41,7 @@ export const registerService = async (
     }: RegisterData,
     profilePicture?: Express.Multer.File,
 ) => {
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const passwordHash = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString("hex");
     const verificationTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
     const unverifiedExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -163,4 +169,24 @@ export const resendVerificationService = async (userId: string) => {
         "verification",
         sendVerificationEmail(user.email, user.username, token),
     );
+};
+
+export const loginService = async ({ email, password }: LoginInput) => {
+    const record = await authRepository.findLoginByEmail(email);
+
+    const hash = record?.passwordHash ?? DUMMY_HASH;
+    const passwordOk = await bcrypt.compare(password, hash);
+
+    if (!record || !record.passwordHash || !passwordOk) {
+        throw new UnauthorizedError("Invalid email or password");
+    }
+
+    await authRepository.markLogin(record.userId);
+
+    return {
+        userId: record.userId,
+        username: record.username,
+        email: record.email,
+        isVerified: record.isVerified ?? false,
+    };
 };

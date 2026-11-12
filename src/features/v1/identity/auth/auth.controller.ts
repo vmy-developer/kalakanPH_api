@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import * as authService from "./auth.service";
-import { RegisterData, VerifyEmailInput } from "./dtos/auth.data.dto";
+import {
+    LoginInput,
+    RegisterData,
+    VerifyEmailInput,
+} from "./dtos/auth.data.dto";
 import { setAuthCookie } from "../../../../common/middleware/setAuthCookie";
 
 export const registerController = async (
@@ -41,5 +45,19 @@ export const resendVerificationController = async (
 
     res.status(200).json({
         message: "Verification email sent",
+    });
+};
+
+export const loginController = async (
+    req: Request,
+    res: Response,
+): Promise<void> => {
+    const user = await authService.loginService(req.body as LoginInput);
+
+    setAuthCookie(res, user.userId);
+
+    res.status(200).json({
+        message: "Logged in successfully",
+        data: user,
     });
 };
