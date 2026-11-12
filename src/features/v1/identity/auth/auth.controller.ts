@@ -5,6 +5,7 @@ import {
     ResendVerificationInput,
     VerifyEmailInput,
 } from "./dtos/auth.data.dto";
+import { setAuthCookie } from "../../../../common/middleware/setAuthCookie";
 
 export const registerController = async (
     req: Request,
@@ -14,6 +15,8 @@ export const registerController = async (
         req.body as RegisterData,
         req.file,
     );
+
+    setAuthCookie(res, user.userId);
 
     res.status(201).json({
         message: "User created successfully",
