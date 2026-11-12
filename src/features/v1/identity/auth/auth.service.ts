@@ -165,10 +165,7 @@ export const resendVerificationService = async (userId: string) => {
         throw new BadRequestError("Account is already verified");
     }
 
-    sendInBackground(
-        "verification",
-        sendVerificationEmail(user.email, user.username, token),
-    );
+    await sendVerificationEmail(user.email, user.username, token);
 };
 
 export const loginService = async ({ email, password }: LoginInput) => {

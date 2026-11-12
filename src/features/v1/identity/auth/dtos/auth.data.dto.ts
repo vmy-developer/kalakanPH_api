@@ -31,8 +31,6 @@ export const RegisterUserSchema = z
             .max(15, "Surname must be at most 15 characters")
             .transform(capitalize),
 
-        profilePicture: z.string().optional().nullable(),
-
         birthdate: z
             .string()
             .refine((value) => !isNaN(Date.parse(value)), "Invalid birthdate")
