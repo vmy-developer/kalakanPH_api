@@ -4,14 +4,11 @@ import {
     resendVerificationController,
     verifyEmailController,
 } from "./auth.controller";
-import {
-    RegisterUserSchema,
-    ResendVerificationSchema,
-    VerifyEmailSchema,
-} from "./dtos/auth.data.dto";
+import { RegisterUserSchema, VerifyEmailSchema } from "./dtos/auth.data.dto";
 import { limiters } from "../../../../common/middleware/rateLimiter";
 import { validate } from "../../../../common/middleware/validate";
 import { uploadProfilePicture } from "../../../../common/utils/storage/upload";
+import { authenticate } from "../../../../common/middleware/authenticate";
 
 const router = express.Router();
 
@@ -32,8 +29,8 @@ router.get(
 
 router.post(
     "/resend-verification",
+    authenticate,
     limiters.resendVerification,
-    validate(ResendVerificationSchema),
     resendVerificationController,
 );
 

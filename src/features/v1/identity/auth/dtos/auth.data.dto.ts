@@ -87,10 +87,6 @@ export const VerifyEmailSchema = z.object({
         .regex(/^[a-f0-9]+$/, "Invalid token"),
 });
 
-export const ResendVerificationSchema = z.object({
-    email: z.string().trim().email("Invalid email address").toLowerCase(),
-});
-
 export const LoginSchema = z.object({
     email: z.string().trim().email("Invalid email address").toLowerCase(),
     password: z.string().min(1, "Password is required"),
@@ -100,5 +96,4 @@ type RegisterAuthInput = z.infer<typeof RegisterUserSchema>;
 export type RegisterData = Omit<RegisterAuthInput, "confirmPassword">;
 
 export type VerifyEmailInput = z.infer<typeof VerifyEmailSchema>;
-export type ResendVerificationInput = z.infer<typeof ResendVerificationSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;

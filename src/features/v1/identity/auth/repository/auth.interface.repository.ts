@@ -11,20 +11,10 @@ export interface IAuthRepository {
         client?: PoolClient,
     ): Promise<{ userId: string; email: string; username: string } | null>;
 
-    findByEmail(
-        email: string,
-        client?: PoolClient,
-    ): Promise<{
-        authId: string;
-        email: string;
-        username: string;
-        isVerified: boolean;
-    } | null>;
-
-    updateVerificationToken(
-        authId: string,
+    refreshVerificationTokenByUserId(
+        userId: string,
         token: string,
         tokenExpiry: Date,
         client?: PoolClient,
-    ): Promise<void>;
+    ): Promise<{ email: string; username: string } | null>;
 }

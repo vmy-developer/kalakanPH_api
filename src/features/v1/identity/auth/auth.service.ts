@@ -1,11 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-import type {
-    RegisterData,
-    ResendVerificationInput,
-    VerifyEmailInput,
-} from "./dtos/auth.data.dto";
+import type { RegisterData, VerifyEmailInput } from "./dtos/auth.data.dto";
 import userRepository from "../user/user.repository";
 import authRepository from "./auth.repository";
 import type { IUser } from "../user/types/user.interface";
@@ -149,34 +145,22 @@ export const verifyEmailService = async ({ token }: VerifyEmailInput) => {
     return { userId: user.userId, isVerified: true };
 };
 
-export const resendVerificationService = async ({
-    email,
-}: ResendVerificationInput): Promise<void> => {
-    const account = await authRepository.findByEmail(email);
-
-    if (!account) {
-        throw new BadRequestError(
-            "Resend verification: no account for this email",
-        );
-    }
-
-    if (account.isVerified) {
-        throw new BadRequestError(
-            "Resend verification: account already verified",
-        );
-    }
-
+export const resendVerificationService = async (userId: string) => {
     const token = crypto.randomBytes(32).toString("hex");
     const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    await authRepository.updateVerificationToken(
-        account.authId,
+    const user = await authRepository.refreshVerificationTokenByUserId(
+        userId,
         token,
         tokenExpiry,
     );
 
+    if (!user) {
+        throw new BadRequestError("Account is already verified");
+    }
+
     sendInBackground(
         "verification",
-        sendVerificationEmail(account.email, account.username, token),
+        sendVerificationEmail(user.email, user.username, token),
     );
 };

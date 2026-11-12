@@ -1,10 +1,6 @@
 import { Request, Response } from "express";
 import * as authService from "./auth.service";
-import {
-    RegisterData,
-    ResendVerificationInput,
-    VerifyEmailInput,
-} from "./dtos/auth.data.dto";
+import { RegisterData, VerifyEmailInput } from "./dtos/auth.data.dto";
 import { setAuthCookie } from "../../../../common/middleware/setAuthCookie";
 
 export const registerController = async (
@@ -41,10 +37,9 @@ export const resendVerificationController = async (
     req: Request,
     res: Response,
 ): Promise<void> => {
-    await authService.resendVerificationService(
-        req.body as ResendVerificationInput,
-    );
+    await authService.resendVerificationService(req.user!.id);
+
     res.status(200).json({
-        message: "A new verification email has been sent",
+        message: "Verification email sent",
     });
 };
