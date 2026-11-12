@@ -1,6 +1,7 @@
 import express from "express";
 import {
     loginController,
+    logoutController,
     registerController,
     resendVerificationController,
     verifyEmailController,
@@ -40,5 +41,7 @@ router.post(
 );
 
 router.post("/login", limiters.login, validate(LoginSchema), loginController);
+
+router.post("/logout", authenticate, logoutController);
 
 export default router;

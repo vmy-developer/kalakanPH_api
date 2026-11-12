@@ -132,6 +132,15 @@ const authRepository: IAuthRepository = {
             [userId],
         );
     },
+
+    markLogout: async (userId, client) => {
+        await getExecutor(client).query(
+            `UPDATE identity.auth
+         SET is_online = false, last_logout = now()
+         WHERE user_id = $1`,
+            [userId],
+        );
+    },
 };
 
 export default authRepository;

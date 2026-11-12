@@ -190,3 +190,7 @@ export const loginService = async ({ email, password }: LoginInput) => {
         isVerified: record.isVerified ?? false,
     };
 };
+
+export const logoutService = async (userId: string): Promise<void> => {
+    await authRepository.markLogout(userId);
+};

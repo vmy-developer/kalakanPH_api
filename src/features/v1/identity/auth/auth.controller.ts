@@ -5,7 +5,10 @@ import {
     RegisterData,
     VerifyEmailInput,
 } from "./dtos/auth.data.dto";
-import { setAuthCookie } from "../../../../common/middleware/setAuthCookie";
+import {
+    clearAuthCookie,
+    setAuthCookie,
+} from "../../../../common/middleware/setAuthCookie";
 
 export const registerController = async (
     req: Request,
@@ -59,5 +62,18 @@ export const loginController = async (
     res.status(200).json({
         message: "Logged in successfully",
         data: user,
+    });
+};
+
+export const logoutController = async (
+    req: Request,
+    res: Response,
+): Promise<void> => {
+    await authService.logoutService(req.user!.id);
+
+    clearAuthCookie(res);
+
+    res.status(200).json({
+        message: "Logged out successfully",
     });
 };

@@ -30,4 +30,6 @@ export interface IAuthRepository {
     } | null>;
 
     markLogin(userId: string, client?: PoolClient): Promise<void>;
+
+    markLogout(userId: string, client?: PoolClient): Promise<void>;
 }
