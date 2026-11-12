@@ -141,6 +141,37 @@ const authRepository: IAuthRepository = {
             [userId],
         );
     },
+
+    isVerified: async (userId, client) => {
+        const { rows } = await getExecutor(client).query<{
+            isVerified: boolean;
+        }>(
+            `SELECT is_verified AS "isVerified"
+         FROM identity.auth
+         WHERE user_id = $1`,
+            [userId],
+        );
+        return rows[0]?.isVerified ?? false;
+    },
+
+    findSessionById: async (userId, client) => {
+        const { rows } = await getExecutor(client).query<{
+            userId: string;
+            username: string;
+            email: string;
+            isVerified: boolean;
+        }>(
+            `SELECT u.id          AS "userId",
+                u.username,
+                u.email,
+                a.is_verified AS "isVerified"
+         FROM identity.users u
+         JOIN identity.auth a ON a.user_id = u.id
+         WHERE u.id = $1`,
+            [userId],
+        );
+        return rows[0] ?? null;
+    },
 };
 
 export default authRepository;

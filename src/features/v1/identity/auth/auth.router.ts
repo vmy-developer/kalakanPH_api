@@ -2,6 +2,7 @@ import express from "express";
 import {
     loginController,
     logoutController,
+    meController,
     registerController,
     resendVerificationController,
     verifyEmailController,
@@ -43,5 +44,7 @@ router.post(
 router.post("/login", limiters.login, validate(LoginSchema), loginController);
 
 router.post("/logout", authenticate, logoutController);
+
+router.get("/me", authenticate, meController);
 
 export default router;

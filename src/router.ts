@@ -3,6 +3,6 @@ import { authRouter } from "./features/v1/identity/auth";
 
 const router = Router();
 
-router.use("/auth", authRouter);
+router.use("/identity/auth", authRouter);
 
 export default router;

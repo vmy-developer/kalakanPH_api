@@ -32,4 +32,16 @@ export interface IAuthRepository {
     markLogin(userId: string, client?: PoolClient): Promise<void>;
 
     markLogout(userId: string, client?: PoolClient): Promise<void>;
+
+    isVerified(userId: string, client?: PoolClient): Promise<boolean>;
+
+    findSessionById(
+        userId: string,
+        client?: PoolClient,
+    ): Promise<{
+        userId: string;
+        username: string;
+        email: string;
+        isVerified: boolean;
+    } | null>;
 }

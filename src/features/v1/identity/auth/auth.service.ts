@@ -194,3 +194,13 @@ export const loginService = async ({ email, password }: LoginInput) => {
 export const logoutService = async (userId: string): Promise<void> => {
     await authRepository.markLogout(userId);
 };
+
+export const meService = async (userId: string) => {
+    const session = await authRepository.findSessionById(userId);
+
+    if (!session) {
+        throw new UnauthorizedError("User not found");
+    }
+
+    return session;
+};

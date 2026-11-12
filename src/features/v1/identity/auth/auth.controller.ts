@@ -77,3 +77,11 @@ export const logoutController = async (
         message: "Logged out successfully",
     });
 };
+
+export const meController = async (
+    req: Request,
+    res: Response,
+): Promise<void> => {
+    const data = await authService.meService(req.user!.id);
+    res.status(200).json({ data });
+};
