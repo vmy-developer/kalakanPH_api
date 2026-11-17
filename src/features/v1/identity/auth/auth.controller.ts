@@ -59,6 +59,11 @@ export const loginController = async (
 
     setAuthCookie(res, user.userId);
 
+    if (user.isVerified === false) {
+        res.status(200).json({ message: "Need to verify", data: user });
+        return;
+    }
+
     res.status(200).json({
         message: "Logged in successfully",
         data: user,
