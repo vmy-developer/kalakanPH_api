@@ -7,4 +7,12 @@ export interface IOAuthRepository {
     ): Promise<string | null>;
 
     markLogin(userId: string, client?: PoolClient): Promise<void>;
+
+    create(
+        userId: string,
+        googleId: string,
+        client?: PoolClient,
+    ): Promise<void>;
+
+    markLogout(userId: string, client?: PoolClient): Promise<void>;
 }

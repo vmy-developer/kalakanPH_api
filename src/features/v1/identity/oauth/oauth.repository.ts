@@ -20,6 +20,23 @@ const oauthRepository: IOAuthRepository = {
             [userId],
         );
     },
+
+    create: async (userId, googleId, client) => {
+        await getExecutor(client).query(
+            `INSERT INTO identity.oauth (user_id, provider_user_id, is_online, last_login)
+             VALUES ($1, $2, true, now())`,
+            [userId, googleId],
+        );
+    },
+
+    markLogout: async (userId, client) => {
+        await getExecutor(client).query(
+            `UPDATE identity.oauth
+             SET is_online = false, last_logout = now()
+             WHERE user_id = $1`,
+            [userId],
+        );
+    },
 };
 
 export default oauthRepository;

@@ -1,8 +1,11 @@
 import express from "express";
 import { limiters } from "../../../../common/middleware/rateLimiter";
 import { validate } from "../../../../common/middleware/validate";
-import { GoogleLoginSchema } from "./dtos/oauth.data.dto";
-import { googleLoginController } from "./oauth.controller";
+import { GoogleLoginSchema, GoogleRegisterSchema } from "./dtos/oauth.data.dto";
+import {
+    googleLoginController,
+    googleRegisterController,
+} from "./oauth.controller";
 
 const router = express.Router();
 
@@ -11,6 +14,13 @@ router.post(
     limiters.login,
     validate(GoogleLoginSchema),
     googleLoginController,
+);
+
+router.post(
+    "/google/register",
+    limiters.register,
+    validate(GoogleRegisterSchema),
+    googleRegisterController,
 );
 
 export default router;

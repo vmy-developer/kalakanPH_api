@@ -1,6 +1,6 @@
 import { UserGender } from "./user.enum";
 
-type LoginMethod = "local";
+type LoginMethod = "local" | "oauth";
 
 export interface IUser {
     id: string;
