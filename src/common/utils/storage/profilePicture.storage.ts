@@ -29,8 +29,10 @@ export const getProfilePictureUrl = async (
     path: string | null,
 ): Promise<string | null> => {
     if (!path) return null;
+    if (path.startsWith("https://")) return path; // Google avatar, use as is
+
     const { data } = await supabase.storage
         .from(PROFILE_BUCKET)
-        .createSignedUrl(path, 60 * 60); // valid 1 hour
+        .createSignedUrl(path, 60 * 60);
     return data?.signedUrl ?? null;
 };
