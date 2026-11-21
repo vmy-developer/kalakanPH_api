@@ -7,7 +7,7 @@ import {
 import { authenticate } from "../../../../common/middleware/authenticate";
 import { validate } from "../../../../common/middleware/validate";
 import { UpdateProfileSchema } from "./dtos/user.data.dto";
-import { uploadProfilePicture } from "../../../../common/utils/storage/upload";
+import { uploadProfilePic } from "../../../../common/utils/storage/upload";
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ router.patch(
 router.patch(
     "/profile/picture",
     authenticate,
-    uploadProfilePicture,
+    uploadProfilePic,
     updatePictureController,
 );
 

@@ -14,7 +14,7 @@ import {
 } from "./dtos/auth.data.dto";
 import { limiters } from "../../../../common/middleware/rateLimiter";
 import { validate } from "../../../../common/middleware/validate";
-import { uploadProfilePicture } from "../../../../common/utils/storage/upload";
+import { uploadProfilePic } from "../../../../common/utils/storage/upload";
 import { authenticate } from "../../../../common/middleware/authenticate";
 
 const router = express.Router();
@@ -22,7 +22,7 @@ const router = express.Router();
 router.post(
     "/register",
     limiters.register,
-    uploadProfilePicture,
+    uploadProfilePic,
     validate(RegisterUserSchema),
     registerController,
 );
