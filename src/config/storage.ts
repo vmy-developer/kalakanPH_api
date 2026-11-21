@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config({ quiet: true });
 
 import { createClient } from "@supabase/supabase-js";
+import logger from "../common/utils/log/logger";
 
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SECRET_KEY;
@@ -40,15 +41,15 @@ export const connectStorage = async (): Promise<void> => {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             await verifyStorage();
-            console.log("🛫 Supabase Storage ready");
+            logger.log("🛫 Supabase Storage ready");
             return;
         } catch (error) {
-            console.error(
+            logger.error(
                 `💥 Storage check failed (${attempt}/${MAX_RETRIES}):`,
                 error,
             );
             if (attempt === MAX_RETRIES) throw error;
-            console.log(`🔄 Retrying in ${RETRY_INTERVAL / 1000} seconds...`);
+            logger.log(`🔄 Retrying in ${RETRY_INTERVAL / 1000} seconds...`);
             await sleep(RETRY_INTERVAL);
         }
     }

@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import logger from "../common/utils/log/logger";
 dotenv.config({ quiet: true });
 
 const RETRY_INTERVAL = 5000;
@@ -66,15 +67,15 @@ const connectMailer = async (): Promise<void> => {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             await verifyMailer(apiKey);
-            console.log("🛫 Mailer (Brevo) ready");
+            logger.log("🛫 Mailer (Brevo) ready");
             return;
         } catch (error) {
-            console.error(
+            logger.error(
                 `💥 Mailer check failed (${attempt}/${MAX_RETRIES}):`,
                 error,
             );
             if (attempt === MAX_RETRIES) throw error;
-            console.log(`🔄 Retrying in ${RETRY_INTERVAL / 1000} seconds...`);
+            logger.log(`🔄 Retrying in ${RETRY_INTERVAL / 1000} seconds...`);
             await sleep(RETRY_INTERVAL);
         }
     }

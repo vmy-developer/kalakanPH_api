@@ -3,6 +3,7 @@ import {
     REQUEST_TIMEOUT_MS,
     getMailConfig,
 } from "../../../config/brevo";
+import logger from "../log/logger";
 
 export interface MailOptions {
     to: string;
@@ -39,6 +40,6 @@ export const sendMail = async ({ to, subject, html }: MailOptions) => {
 
 export const sendInBackground = (label: string, task: Promise<unknown>) => {
     task.catch((error) => {
-        console.error(`📧 Failed to send ${label} email:`, error);
+        logger.error(`📧 Failed to send ${label} email:`, error);
     });
 };

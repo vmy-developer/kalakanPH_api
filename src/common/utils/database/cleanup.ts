@@ -1,3 +1,4 @@
+import logger from "../log/logger";
 import { cleanupUnverifiedUsers } from "./cleanUnverfiedUser";
 
 const CLEANUP_INTERVAL = 60 * 60 * 1000;
@@ -8,10 +9,10 @@ const runCleanup = async (): Promise<void> => {
     try {
         const count = await cleanupUnverifiedUsers();
         if (count > 0) {
-            console.log(`🧹 Removed ${count} unverified accounts`);
+            logger.log(`🧹 Removed ${count} unverified accounts`);
         }
     } catch (error) {
-        console.error("💥 Cleanup failed:", error);
+        logger.error("💥 Cleanup failed:", error);
     }
 };
 
@@ -22,13 +23,13 @@ export const startCleanup = (): void => {
     timer = setInterval(() => void runCleanup(), CLEANUP_INTERVAL);
     timer.unref();
 
-    console.log("🛫 Cleanup scheduler started");
+    logger.log("🛫 Cleanup scheduler started");
 };
 
 export const stopCleanup = (): void => {
     if (timer) {
         clearInterval(timer);
         timer = null;
-        console.log("🔻 Cleanup scheduler stopped");
+        logger.log("🔻 Cleanup scheduler stopped");
     }
 };
