@@ -44,5 +44,16 @@ export interface IUserRepository {
         id: string,
         path: string,
         client?: PoolClient,
-    ): Promise<string | null>; // returns the OLD picture value
+    ): Promise<string | null>;
+
+    findPasswordHashByUserId(
+        userId: string,
+        client?: PoolClient,
+    ): Promise<string | null>;
+
+    updatePasswordHash(
+        userId: string,
+        passwordHash: string,
+        client?: PoolClient,
+    ): Promise<void>;
 }

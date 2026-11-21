@@ -3,14 +3,16 @@ import {
     BadRequestError,
     ConflictError,
     NotFoundError,
+    UnauthorizedError,
 } from "../../../../common/error/errorStatusCode";
 import {
     deleteProfilePicture,
     getProfilePictureUrl,
     uploadProfilePicture,
 } from "../../../../common/utils/storage/profilePicture.storage";
-import { UpdateProfileInput } from "./dtos/user.data.dto";
+import { ChangePasswordInput, UpdateProfileInput } from "./dtos/user.data.dto";
 import { UpdateUserInput } from "./types/user.interface";
+import bcrypt from "bcryptjs";
 
 export const getProfileService = async (userId: string) => {
     const user = await userRepository.findById(userId);
@@ -91,4 +93,25 @@ export const updatePictureService = async (
     }
 
     return { profile: await getProfilePictureUrl(newPath) };
+};
+
+export const changePasswordService = async (
+    userId: string,
+    { currentPassword, newPassword }: ChangePasswordInput,
+): Promise<void> => {
+    const currentHash = await userRepository.findPasswordHashByUserId(userId);
+
+    if (!currentHash) {
+        throw new BadRequestError(
+            "This account uses Google sign-in and has no password",
+        );
+    }
+
+    const ok = await bcrypt.compare(currentPassword, currentHash);
+    if (!ok) {
+        throw new UnauthorizedError("Current password is incorrect");
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await userRepository.updatePasswordHash(userId, newHash);
 };
