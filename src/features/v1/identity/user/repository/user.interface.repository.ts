@@ -15,4 +15,6 @@ export interface IUserRepository {
     findExistingEmail(email: string, client?: PoolClient): Promise<boolean>;
 
     create(data: CreateUserInput, client?: PoolClient): Promise<IUser>;
+
+    findById(id: string, client?: PoolClient): Promise<IUser | null>;
 }
