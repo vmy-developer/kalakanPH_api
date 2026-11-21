@@ -1,5 +1,9 @@
 import type { PoolClient } from "pg";
-import type { IUser, CreateUserInput } from "../types/user.interface";
+import type {
+    IUser,
+    CreateUserInput,
+    UpdateUserInput,
+} from "../types/user.interface";
 
 export interface IUserRepository {
     findExistingUsername(
@@ -17,4 +21,22 @@ export interface IUserRepository {
     create(data: CreateUserInput, client?: PoolClient): Promise<IUser>;
 
     findById(id: string, client?: PoolClient): Promise<IUser | null>;
+
+    updateById(
+        id: string,
+        data: UpdateUserInput,
+        client?: PoolClient,
+    ): Promise<IUser | null>;
+
+    isUsernameTakenByOther(
+        username: string,
+        userId: string,
+        client?: PoolClient,
+    ): Promise<boolean>;
+
+    isContactNumberTakenByOther(
+        contactNumber: string,
+        userId: string,
+        client?: PoolClient,
+    ): Promise<boolean>;
 }

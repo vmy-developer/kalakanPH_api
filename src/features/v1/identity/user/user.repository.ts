@@ -18,6 +18,16 @@ const USER_COLUMNS = `
     updated_at       AS "updatedAt"
 `;
 
+const UPDATABLE_COLUMNS: Record<string, string> = {
+    username: "username",
+    givenname: "givenname",
+    surname: "surname",
+    gender: "gender",
+    birthdate: "birthdate",
+    contactNumber: "contact_number",
+    address: "address",
+};
+
 const userRepository: IUserRepository = {
     findExistingUsername: async (username, client) => {
         const { rows } = await getExecutor(client).query<{ exists: boolean }>(
@@ -74,6 +84,46 @@ const userRepository: IUserRepository = {
             [id],
         );
         return rows[0] ?? null;
+    },
+
+    updateById: async (id, data, client) => {
+        const sets: string[] = [];
+        const values: unknown[] = [];
+
+        for (const [key, value] of Object.entries(data)) {
+            const column = UPDATABLE_COLUMNS[key];
+            if (column === undefined || value === undefined) continue;
+            values.push(value);
+            sets.push(`${column} = $${values.length}`);
+        }
+
+        if (sets.length === 0) return null;
+
+        values.push(id);
+        const { rows } = await getExecutor(client).query<IUser>(
+            `UPDATE identity.users
+         SET ${sets.join(", ")}
+         WHERE id = $${values.length}
+         RETURNING ${USER_COLUMNS}`,
+            values,
+        );
+        return rows[0] ?? null;
+    },
+
+    isUsernameTakenByOther: async (username, userId, client) => {
+        const { rows } = await getExecutor(client).query<{ exists: boolean }>(
+            "SELECT EXISTS (SELECT 1 FROM identity.users WHERE username = $1 AND id <> $2) AS exists",
+            [username, userId],
+        );
+        return rows[0].exists;
+    },
+
+    isContactNumberTakenByOther: async (contactNumber, userId, client) => {
+        const { rows } = await getExecutor(client).query<{ exists: boolean }>(
+            "SELECT EXISTS (SELECT 1 FROM identity.users WHERE contact_number = $1 AND id <> $2) AS exists",
+            [contactNumber, userId],
+        );
+        return rows[0].exists;
     },
 };
 

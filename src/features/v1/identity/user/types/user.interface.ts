@@ -19,3 +19,16 @@ export interface IUser {
 }
 
 export type CreateUserInput = Omit<IUser, "id" | "createdAt" | "updatedAt">;
+
+export type UpdateUserInput = Partial<
+    Pick<
+        IUser,
+        | "username"
+        | "givenname"
+        | "surname"
+        | "gender"
+        | "birthdate"
+        | "contactNumber"
+        | "address"
+    >
+>;
