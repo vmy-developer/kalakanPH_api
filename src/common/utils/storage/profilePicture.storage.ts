@@ -22,6 +22,7 @@ export const uploadProfilePicture = async (
 };
 
 export const deleteProfilePicture = async (path: string): Promise<void> => {
+    if (path.startsWith("https://")) return;
     await supabase.storage.from(PROFILE_BUCKET).remove([path]);
 };
 

@@ -125,6 +125,24 @@ const userRepository: IUserRepository = {
         );
         return rows[0].exists;
     },
+
+    updatePicture: async (id, path, client) => {
+        const { rows } = await getExecutor(client).query<{
+            oldPicture: string | null;
+        }>(
+            `WITH old AS (
+             SELECT profile_picture FROM identity.users WHERE id = $1
+         ),
+         updated AS (
+             UPDATE identity.users SET profile_picture = $2 WHERE id = $1
+             RETURNING id
+         )
+         SELECT old.profile_picture AS "oldPicture"
+         FROM old JOIN updated ON true`,
+            [id, path],
+        );
+        return rows[0]?.oldPicture ?? null;
+    },
 };
 
 export default userRepository;

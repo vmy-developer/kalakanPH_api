@@ -39,4 +39,10 @@ export interface IUserRepository {
         userId: string,
         client?: PoolClient,
     ): Promise<boolean>;
+
+    updatePicture(
+        id: string,
+        path: string,
+        client?: PoolClient,
+    ): Promise<string | null>; // returns the OLD picture value
 }

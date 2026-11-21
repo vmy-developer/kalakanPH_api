@@ -20,3 +20,11 @@ export const updateProfileController = async (
     );
     res.status(200).json({ message: "Profile updated successfully", data });
 };
+
+export const updatePictureController = async (
+    req: Request,
+    res: Response,
+): Promise<void> => {
+    const data = await userService.updatePictureService(req.user!.id, req.file);
+    res.status(200).json({ message: "Profile picture updated", data });
+};

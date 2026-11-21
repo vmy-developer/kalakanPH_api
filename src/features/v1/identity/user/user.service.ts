@@ -1,9 +1,14 @@
 import userRepository from "./user.repository";
 import {
+    BadRequestError,
     ConflictError,
     NotFoundError,
 } from "../../../../common/error/errorStatusCode";
-import { getProfilePictureUrl } from "../../../../common/utils/storage/profilePicture.storage";
+import {
+    deleteProfilePicture,
+    getProfilePictureUrl,
+    uploadProfilePicture,
+} from "../../../../common/utils/storage/profilePicture.storage";
 import { UpdateProfileInput } from "./dtos/user.data.dto";
 import { UpdateUserInput } from "./types/user.interface";
 
@@ -65,4 +70,25 @@ export const updateProfileService = async (
     }
 
     return getProfileService(userId);
+};
+
+export const updatePictureService = async (
+    userId: string,
+    file?: Express.Multer.File,
+) => {
+    if (!file) throw new BadRequestError("Profile picture is required");
+
+    const newPath = await uploadProfilePicture(file);
+
+    try {
+        const oldPicture = await userRepository.updatePicture(userId, newPath);
+        if (oldPicture) {
+            await deleteProfilePicture(oldPicture).catch(() => undefined);
+        }
+    } catch (error) {
+        await deleteProfilePicture(newPath).catch(() => undefined);
+        throw error;
+    }
+
+    return { profile: await getProfilePictureUrl(newPath) };
 };
