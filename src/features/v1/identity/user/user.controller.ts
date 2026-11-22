@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import * as userService from "./user.service";
-import { ChangePasswordInput, UpdateProfileInput } from "./dtos/user.data.dto";
+import {
+    ChangePasswordInput,
+    SearchUsersInput,
+    UpdateProfileInput,
+} from "./dtos/user.data.dto";
 
 export const getProfileController = async (
     req: Request,
@@ -38,4 +42,15 @@ export const changePasswordController = async (
         req.body as ChangePasswordInput,
     );
     res.status(200).json({ message: "Password changed successfully" });
+};
+
+export const searchUsersController = async (
+    req: Request,
+    res: Response,
+): Promise<void> => {
+    const data = await userService.searchUsersService(
+        req.user!.id,
+        req.query as unknown as SearchUsersInput,
+    );
+    res.status(200).json({ data });
 };

@@ -3,6 +3,7 @@ import type {
     IUser,
     CreateUserInput,
     UpdateUserInput,
+    UserSearchResult,
 } from "../types/user.interface";
 
 export interface IUserRepository {
@@ -56,4 +57,12 @@ export interface IUserRepository {
         passwordHash: string,
         client?: PoolClient,
     ): Promise<void>;
+
+    search(
+        query: string,
+        excludeUserId: string,
+        limit: number,
+        offset: number,
+        client?: PoolClient,
+    ): Promise<UserSearchResult[]>;
 }

@@ -1,4 +1,4 @@
-import type { IUser } from "./types/user.interface";
+import type { IUser, UserSearchResult } from "./types/user.interface";
 import type { IUserRepository } from "./repository/user.interface.repository";
 import { getExecutor } from "../../../../common/utils/database/dbExecutor";
 
@@ -160,6 +160,28 @@ const userRepository: IUserRepository = {
             `UPDATE identity.auth SET password_hash = $2 WHERE user_id = $1`,
             [userId, passwordHash],
         );
+    },
+
+    search: async (query, excludeUserId, limit, offset, client) => {
+        // Escape LIKE wildcards so users can't inject % or _
+        const escaped = query.toLowerCase().replace(/[\\%_]/g, "\\$&");
+        const pattern = `${escaped}%`;
+
+        const { rows } = await getExecutor(client).query<UserSearchResult>(
+            `SELECT username,
+                givenname,
+                surname,
+                profile_picture AS "profilePicture"
+         FROM identity.users
+         WHERE id <> $2
+           AND (lower(username)  LIKE $1
+             OR lower(givenname) LIKE $1
+             OR lower(surname)   LIKE $1)
+         ORDER BY lower(username)
+         LIMIT $3 OFFSET $4`,
+            [pattern, excludeUserId, limit, offset],
+        );
+        return rows;
     },
 };
 

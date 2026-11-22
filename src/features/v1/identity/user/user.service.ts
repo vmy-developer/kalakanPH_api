@@ -10,7 +10,11 @@ import {
     getProfilePictureUrl,
     uploadProfilePicture,
 } from "../../../../common/utils/storage/profilePicture.storage";
-import { ChangePasswordInput, UpdateProfileInput } from "./dtos/user.data.dto";
+import {
+    ChangePasswordInput,
+    SearchUsersInput,
+    UpdateProfileInput,
+} from "./dtos/user.data.dto";
 import { UpdateUserInput } from "./types/user.interface";
 import bcrypt from "bcryptjs";
 
@@ -114,4 +118,22 @@ export const changePasswordService = async (
 
     const newHash = await bcrypt.hash(newPassword, 10);
     await userRepository.updatePasswordHash(userId, newHash);
+};
+
+export const searchUsersService = async (
+    userId: string,
+    { q, limit, offset }: SearchUsersInput,
+) => {
+    const users = await userRepository.search(q, userId, limit, offset);
+
+    const results = await Promise.all(
+        users.map(async (u) => ({
+            username: u.username,
+            givenname: u.givenname,
+            surname: u.surname,
+            profile: await getProfilePictureUrl(u.profilePicture),
+        })),
+    );
+
+    return { results, limit, offset, hasMore: results.length === limit };
 };

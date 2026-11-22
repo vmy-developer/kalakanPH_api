@@ -32,3 +32,10 @@ export type UpdateUserInput = Partial<
         | "address"
     >
 >;
+
+export interface UserSearchResult {
+    username: string;
+    givenname: string;
+    surname: string;
+    profilePicture: string | null;
+}

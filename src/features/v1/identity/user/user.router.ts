@@ -2,6 +2,7 @@ import express from "express";
 import {
     changePasswordController,
     getProfileController,
+    searchUsersController,
     updatePictureController,
     updateProfileController,
 } from "./user.controller";
@@ -9,6 +10,7 @@ import { authenticate } from "../../../../common/middleware/authenticate";
 import { validate } from "../../../../common/middleware/validate";
 import {
     ChangePasswordSchema,
+    SearchUsersSchema,
     UpdateProfileSchema,
 } from "./dtos/user.data.dto";
 import { uploadProfilePic } from "../../../../common/utils/storage/upload";
@@ -36,6 +38,13 @@ router.patch(
     authenticate,
     validate(ChangePasswordSchema),
     changePasswordController,
+);
+
+router.get(
+    "/search",
+    authenticate,
+    validate(SearchUsersSchema, "query"),
+    searchUsersController,
 );
 
 export default router;

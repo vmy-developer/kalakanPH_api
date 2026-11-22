@@ -47,6 +47,14 @@ export const ChangePasswordSchema = z
         path: ["newPassword"],
     });
 
+export const SearchUsersSchema = z.object({
+    q: z.string().trim().min(2, "Search must be at least 2 characters").max(30),
+    limit: z.coerce.number().int().min(1).max(20).default(10),
+    offset: z.coerce.number().int().min(0).max(1000).default(0),
+});
+
+export type SearchUsersInput = z.infer<typeof SearchUsersSchema>;
+
 export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
