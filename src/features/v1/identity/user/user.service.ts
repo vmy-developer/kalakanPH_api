@@ -12,12 +12,15 @@ import {
 } from "../../../../common/utils/storage/profilePicture.storage";
 import {
     ChangePasswordInput,
+    DeleteAccountInput,
     SearchUsersInput,
     UpdateProfileInput,
     UsernameParamInput,
 } from "./dtos/user.data.dto";
 import { UpdateUserInput } from "./types/user.interface";
 import bcrypt from "bcryptjs";
+import oauthRepository from "../oauth/oauth.repository";
+import { verifyGoogleToken } from "../../../../common/utils/google/verifyGoogleToken";
 
 export const getProfileService = async (userId: string) => {
     const user = await userRepository.findById(userId);
@@ -159,4 +162,36 @@ export const getPublicProfileService = async ({
         birthdate: user.birthdate,
         profile: await getProfilePictureUrl(user.profilePicture),
     };
+};
+
+export const deleteAccountService = async (
+    userId: string,
+    { password, idToken }: DeleteAccountInput,
+): Promise<void> => {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new NotFoundError("User not found");
+
+    if (user.loginMethod === "local") {
+        if (!password) throw new BadRequestError("Password is required");
+
+        const hash = await userRepository.findPasswordHashByUserId(userId);
+        const ok = hash ? await bcrypt.compare(password, hash) : false;
+        if (!ok) throw new BadRequestError("Incorrect password");
+    } else {
+        if (!idToken) throw new BadRequestError("Google token is required");
+
+        const g = await verifyGoogleToken(idToken);
+        const linkedUserId = await oauthRepository.findUserByGoogleId(
+            g.googleId,
+        );
+        if (linkedUserId !== userId) {
+            throw new BadRequestError("Google account does not match");
+        }
+    }
+
+    const picture = await userRepository.deleteById(userId);
+
+    if (picture) {
+        await deleteProfilePicture(picture).catch(() => undefined);
+    }
 };

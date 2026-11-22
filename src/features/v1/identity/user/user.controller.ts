@@ -2,10 +2,12 @@ import type { Request, Response } from "express";
 import * as userService from "./user.service";
 import {
     ChangePasswordInput,
+    DeleteAccountInput,
     SearchUsersInput,
     UpdateProfileInput,
     UsernameParamInput,
 } from "./dtos/user.data.dto";
+import { clearAuthCookie } from "../../../../common/middleware/setAuthCookie";
 
 export const getProfileController = async (
     req: Request,
@@ -64,4 +66,18 @@ export const getPublicProfileController = async (
         req.params as UsernameParamInput,
     );
     res.status(200).json({ data });
+};
+
+export const deleteAccountController = async (
+    req: Request,
+    res: Response,
+): Promise<void> => {
+    await userService.deleteAccountService(
+        req.user!.id,
+        req.body as DeleteAccountInput,
+    );
+
+    clearAuthCookie(res);
+
+    res.status(200).json({ message: "Account deleted successfully" });
 };

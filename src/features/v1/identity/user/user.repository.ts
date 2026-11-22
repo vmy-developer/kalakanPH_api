@@ -191,6 +191,18 @@ const userRepository: IUserRepository = {
         );
         return rows[0] ?? null;
     },
+
+    deleteById: async (id, client) => {
+        const { rows } = await getExecutor(client).query<{
+            profilePicture: string | null;
+        }>(
+            `DELETE FROM identity.users
+         WHERE id = $1
+         RETURNING profile_picture AS "profilePicture"`,
+            [id],
+        );
+        return rows.length === 0 ? undefined : rows[0].profilePicture;
+    },
 };
 
 export default userRepository;

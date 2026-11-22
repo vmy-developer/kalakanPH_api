@@ -1,6 +1,7 @@
 import express from "express";
 import {
     changePasswordController,
+    deleteAccountController,
     getProfileController,
     getPublicProfileController,
     searchUsersController,
@@ -11,6 +12,7 @@ import { authenticate } from "../../../../common/middleware/authenticate";
 import { validate } from "../../../../common/middleware/validate";
 import {
     ChangePasswordSchema,
+    DeleteAccountSchema,
     SearchUsersSchema,
     UpdateProfileSchema,
     UsernameParamSchema,
@@ -53,6 +55,13 @@ router.get(
     "/:username",
     validate(UsernameParamSchema, "params"),
     getPublicProfileController,
+);
+
+router.delete(
+    "/profile",
+    authenticate,
+    validate(DeleteAccountSchema),
+    deleteAccountController,
 );
 
 export default router;

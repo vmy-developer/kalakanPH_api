@@ -57,6 +57,18 @@ export const UsernameParamSchema = z.object({
     username: RegisterUserSchema.shape.username,
 });
 
+export const DeleteAccountSchema = z
+    .object({
+        password: z.string().min(1).max(72).optional(),
+        idToken: z.string().min(1).optional(),
+    })
+    .strict()
+    .refine((d) => d.password !== undefined || d.idToken !== undefined, {
+        message: "Password or Google token is required",
+    });
+
+export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;
+
 export type UsernameParamInput = z.infer<typeof UsernameParamSchema>;
 
 export type SearchUsersInput = z.infer<typeof SearchUsersSchema>;

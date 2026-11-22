@@ -70,4 +70,9 @@ export interface IUserRepository {
         username: string,
         client?: PoolClient,
     ): Promise<IUser | null>;
+
+    deleteById(
+        id: string,
+        client?: PoolClient,
+    ): Promise<string | null | undefined>;
 }
