@@ -183,6 +183,14 @@ const userRepository: IUserRepository = {
         );
         return rows;
     },
+
+    findByUsername: async (username, client) => {
+        const { rows } = await getExecutor(client).query<IUser>(
+            `SELECT ${USER_COLUMNS} FROM identity.users WHERE username = $1`,
+            [username],
+        );
+        return rows[0] ?? null;
+    },
 };
 
 export default userRepository;

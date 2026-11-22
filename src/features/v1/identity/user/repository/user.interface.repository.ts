@@ -65,4 +65,9 @@ export interface IUserRepository {
         offset: number,
         client?: PoolClient,
     ): Promise<UserSearchResult[]>;
+
+    findByUsername(
+        username: string,
+        client?: PoolClient,
+    ): Promise<IUser | null>;
 }

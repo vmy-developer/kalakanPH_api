@@ -14,6 +14,7 @@ import {
     ChangePasswordInput,
     SearchUsersInput,
     UpdateProfileInput,
+    UsernameParamInput,
 } from "./dtos/user.data.dto";
 import { UpdateUserInput } from "./types/user.interface";
 import bcrypt from "bcryptjs";
@@ -136,4 +137,26 @@ export const searchUsersService = async (
     );
 
     return { results, limit, offset, hasMore: results.length === limit };
+};
+
+export const getPublicProfileService = async ({
+    username,
+}: UsernameParamInput) => {
+    const user = await userRepository.findByUsername(username);
+
+    if (!user) {
+        throw new NotFoundError("User not found");
+    }
+
+    return {
+        username: user.username,
+        givenname: user.givenname,
+        surname: user.surname,
+        email: user.email,
+        contactNumber: user.contactNumber,
+        gender: user.gender,
+        address: user.address,
+        birthdate: user.birthdate,
+        profile: await getProfilePictureUrl(user.profilePicture),
+    };
 };

@@ -4,6 +4,7 @@ import {
     ChangePasswordInput,
     SearchUsersInput,
     UpdateProfileInput,
+    UsernameParamInput,
 } from "./dtos/user.data.dto";
 
 export const getProfileController = async (
@@ -51,6 +52,16 @@ export const searchUsersController = async (
     const data = await userService.searchUsersService(
         req.user!.id,
         req.query as unknown as SearchUsersInput,
+    );
+    res.status(200).json({ data });
+};
+
+export const getPublicProfileController = async (
+    req: Request,
+    res: Response,
+): Promise<void> => {
+    const data = await userService.getPublicProfileService(
+        req.params as UsernameParamInput,
     );
     res.status(200).json({ data });
 };

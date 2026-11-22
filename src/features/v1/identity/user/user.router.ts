@@ -2,6 +2,7 @@ import express from "express";
 import {
     changePasswordController,
     getProfileController,
+    getPublicProfileController,
     searchUsersController,
     updatePictureController,
     updateProfileController,
@@ -12,6 +13,7 @@ import {
     ChangePasswordSchema,
     SearchUsersSchema,
     UpdateProfileSchema,
+    UsernameParamSchema,
 } from "./dtos/user.data.dto";
 import { uploadProfilePic } from "../../../../common/utils/storage/upload";
 
@@ -45,6 +47,12 @@ router.get(
     authenticate,
     validate(SearchUsersSchema, "query"),
     searchUsersController,
+);
+
+router.get(
+    "/:username",
+    validate(UsernameParamSchema, "params"),
+    getPublicProfileController,
 );
 
 export default router;

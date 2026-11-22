@@ -53,6 +53,12 @@ export const SearchUsersSchema = z.object({
     offset: z.coerce.number().int().min(0).max(1000).default(0),
 });
 
+export const UsernameParamSchema = z.object({
+    username: RegisterUserSchema.shape.username,
+});
+
+export type UsernameParamInput = z.infer<typeof UsernameParamSchema>;
+
 export type SearchUsersInput = z.infer<typeof SearchUsersSchema>;
 
 export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
