@@ -1,4 +1,8 @@
-import type { IUser, UserSearchResult } from "./types/user.interface";
+import type {
+    IUser,
+    UniqueField,
+    UserSearchResult,
+} from "./types/user.interface";
 import type { IUserRepository } from "./repository/user.interface.repository";
 import { getExecutor } from "../../../../common/utils/database/dbExecutor";
 
@@ -28,29 +32,43 @@ const UPDATABLE_COLUMNS: Record<string, string> = {
     address: "address",
 };
 
+const UNIQUE_COLUMNS: ReadonlyArray<readonly [UniqueField, string]> = [
+    ["username", "username"],
+    ["email", "email"],
+    ["contactNumber", "contact_number"],
+];
+
 const userRepository: IUserRepository = {
-    findExistingUsername: async (username, client) => {
-        const { rows } = await getExecutor(client).query<{ exists: boolean }>(
-            "SELECT EXISTS (SELECT 1 FROM identity.users WHERE username = $1) AS exists",
-            [username],
+    findConflicts: async (fields, excludeId, client) => {
+        const checks = UNIQUE_COLUMNS.filter(
+            ([key]) => fields[key] !== undefined,
         );
-        return rows[0].exists;
-    },
+        if (checks.length === 0) return [];
 
-    findExistingContactNumber: async (contactNumber, client) => {
-        const { rows } = await getExecutor(client).query<{ exists: boolean }>(
-            "SELECT EXISTS (SELECT 1 FROM identity.users WHERE contact_number = $1) AS exists",
-            [contactNumber],
-        );
-        return rows[0].exists;
-    },
+        const values: unknown[] = checks.map(([key]) => fields[key]);
+        const matches = checks.map(([, column], i) => `${column} = $${i + 1}`);
 
-    findExistingEmail: async (email, client) => {
-        const { rows } = await getExecutor(client).query<{ exists: boolean }>(
-            "SELECT EXISTS (SELECT 1 FROM identity.users WHERE email = $1) AS exists",
-            [email],
+        let exclusion = "";
+        if (excludeId !== undefined) {
+            values.push(excludeId);
+            exclusion = ` AND id <> $${values.length}`;
+        }
+
+        const { rows } = await getExecutor(client).query<
+            Record<string, boolean>
+        >(
+            `SELECT ${checks
+                .map(
+                    ([key, column], i) =>
+                        `COALESCE(bool_or(${column} = $${i + 1}), false) AS "${key}"`,
+                )
+                .join(", ")}
+             FROM identity.users
+             WHERE (${matches.join(" OR ")})${exclusion}`,
+            values,
         );
-        return rows[0].exists;
+
+        return checks.filter(([key]) => rows[0][key]).map(([key]) => key);
     },
 
     create: async (data, client) => {
@@ -110,22 +128,6 @@ const userRepository: IUserRepository = {
         return rows[0] ?? null;
     },
 
-    isUsernameTakenByOther: async (username, userId, client) => {
-        const { rows } = await getExecutor(client).query<{ exists: boolean }>(
-            "SELECT EXISTS (SELECT 1 FROM identity.users WHERE username = $1 AND id <> $2) AS exists",
-            [username, userId],
-        );
-        return rows[0].exists;
-    },
-
-    isContactNumberTakenByOther: async (contactNumber, userId, client) => {
-        const { rows } = await getExecutor(client).query<{ exists: boolean }>(
-            "SELECT EXISTS (SELECT 1 FROM identity.users WHERE contact_number = $1 AND id <> $2) AS exists",
-            [contactNumber, userId],
-        );
-        return rows[0].exists;
-    },
-
     updatePicture: async (id, path, client) => {
         const { rows } = await getExecutor(client).query<{
             oldPicture: string | null;
@@ -142,24 +144,6 @@ const userRepository: IUserRepository = {
             [id, path],
         );
         return rows[0]?.oldPicture ?? null;
-    },
-
-    findPasswordHashByUserId: async (userId, client) => {
-        const { rows } = await getExecutor(client).query<{
-            passwordHash: string;
-        }>(
-            `SELECT password_hash AS "passwordHash"
-         FROM identity.auth WHERE user_id = $1`,
-            [userId],
-        );
-        return rows[0]?.passwordHash ?? null;
-    },
-
-    updatePasswordHash: async (userId, passwordHash, client) => {
-        await getExecutor(client).query(
-            `UPDATE identity.auth SET password_hash = $2 WHERE user_id = $1`,
-            [userId, passwordHash],
-        );
     },
 
     search: async (query, excludeUserId, limit, offset, client) => {

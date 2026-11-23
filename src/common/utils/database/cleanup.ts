@@ -1,7 +1,7 @@
+import { CLEANUP_INTERVAL_MS } from "../../constants/constants";
 import logger from "../log/logger";
-import { cleanupUnverifiedUsers } from "./cleanUnverfiedUser";
 
-const CLEANUP_INTERVAL = 60 * 60 * 1000;
+import { cleanupUnverifiedUsers } from "./cleanUnverfiedUsers";
 
 let timer: NodeJS.Timeout | null = null;
 
@@ -20,7 +20,7 @@ export const startCleanup = (): void => {
     if (timer) return; // already running
 
     void runCleanup(); // run once at startup, then on the interval
-    timer = setInterval(() => void runCleanup(), CLEANUP_INTERVAL);
+    timer = setInterval(() => void runCleanup(), CLEANUP_INTERVAL_MS);
     timer.unref();
 
     logger.log("🛫 Cleanup scheduler started");

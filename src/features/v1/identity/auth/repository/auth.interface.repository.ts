@@ -33,6 +33,17 @@ export interface IAuthRepository {
 
     markLogout(userId: string, client?: PoolClient): Promise<void>;
 
+    findPasswordHashByUserId(
+        userId: string,
+        client?: PoolClient,
+    ): Promise<string | null>;
+
+    updatePasswordHash(
+        userId: string,
+        passwordHash: string,
+        client?: PoolClient,
+    ): Promise<void>;
+
     isVerified(userId: string, client?: PoolClient): Promise<boolean>;
 
     findSessionById(

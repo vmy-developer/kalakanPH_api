@@ -33,6 +33,10 @@ export type UpdateUserInput = Partial<
     >
 >;
 
+export type UniqueField = "username" | "email" | "contactNumber";
+
+export type UniqueFields = Partial<Record<UniqueField, string>>;
+
 export interface UserSearchResult {
     username: string;
     givenname: string;

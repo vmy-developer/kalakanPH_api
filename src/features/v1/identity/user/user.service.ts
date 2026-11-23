@@ -1,7 +1,9 @@
+import bcrypt from "bcryptjs";
 import userRepository from "./user.repository";
+import authRepository from "../auth/auth.repository";
+import oauthRepository from "../oauth/oauth.repository";
 import {
     BadRequestError,
-    ConflictError,
     NotFoundError,
     UnauthorizedError,
 } from "../../../../common/error/errorStatusCode";
@@ -10,17 +12,19 @@ import {
     getProfilePictureUrl,
     uploadProfilePicture,
 } from "../../../../common/utils/storage/profilePicture.storage";
-import {
+import { verifyGoogleToken } from "../../../../common/utils/google/verifyGoogleToken";
+import type {
     ChangePasswordInput,
     DeleteAccountInput,
     SearchUsersInput,
     UpdateProfileInput,
     UsernameParamInput,
 } from "./dtos/user.data.dto";
-import { UpdateUserInput } from "./types/user.interface";
-import bcrypt from "bcryptjs";
-import oauthRepository from "../oauth/oauth.repository";
-import { verifyGoogleToken } from "../../../../common/utils/google/verifyGoogleToken";
+import type { UpdateUserInput } from "./types/user.interface";
+import { toProfileDto } from "./types/user.mapper";
+import { assertUserUnique, mapUniqueViolation } from "./types/user.uniqueness";
+import { toContactNumber } from "../../../../common/phone/phone";
+import { BCRYPT_ROUNDS } from "../../../../common/constants/constants";
 
 export const getProfileService = async (userId: string) => {
     const user = await userRepository.findById(userId);
@@ -29,17 +33,7 @@ export const getProfileService = async (userId: string) => {
         throw new NotFoundError("User not found");
     }
 
-    return {
-        username: user.username,
-        givenname: user.givenname,
-        surname: user.surname,
-        email: user.email,
-        contactNumber: user.contactNumber,
-        gender: user.gender,
-        address: user.address,
-        birthdate: user.birthdate,
-        profile: await getProfilePictureUrl(user.profilePicture),
-    };
+    return toProfileDto(user);
 };
 
 export const updateProfileService = async (
@@ -48,35 +42,25 @@ export const updateProfileService = async (
 ) => {
     const changes: UpdateUserInput = { ...rest };
     if (phoneNumber !== undefined) {
-        changes.contactNumber = `+63${phoneNumber}`;
+        changes.contactNumber = toContactNumber(phoneNumber);
     }
 
-    if (
-        changes.username &&
-        (await userRepository.isUsernameTakenByOther(changes.username, userId))
-    ) {
-        throw new ConflictError("Username already exists");
-    }
-    if (
-        changes.contactNumber &&
-        (await userRepository.isContactNumberTakenByOther(
-            changes.contactNumber,
-            userId,
-        ))
-    ) {
-        throw new ConflictError("Contact number already exists");
-    }
+    await assertUserUnique(
+        {
+            username: changes.username,
+            contactNumber: changes.contactNumber,
+        },
+        { excludeId: userId },
+    );
 
     try {
         const user = await userRepository.updateById(userId, changes);
         if (!user) throw new NotFoundError("User not found");
     } catch (error) {
-        if ((error as { code?: string }).code === "23505") {
-            throw new ConflictError(
-                "Username or contact number already exists",
-            );
-        }
-        throw error;
+        throw mapUniqueViolation(
+            error,
+            "Username or contact number already exists",
+        );
     }
 
     return getProfileService(userId);
@@ -107,7 +91,7 @@ export const changePasswordService = async (
     userId: string,
     { currentPassword, newPassword }: ChangePasswordInput,
 ): Promise<void> => {
-    const currentHash = await userRepository.findPasswordHashByUserId(userId);
+    const currentHash = await authRepository.findPasswordHashByUserId(userId);
 
     if (!currentHash) {
         throw new BadRequestError(
@@ -120,8 +104,8 @@ export const changePasswordService = async (
         throw new UnauthorizedError("Current password is incorrect");
     }
 
-    const newHash = await bcrypt.hash(newPassword, 10);
-    await userRepository.updatePasswordHash(userId, newHash);
+    const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await authRepository.updatePasswordHash(userId, newHash);
 };
 
 export const searchUsersService = async (
@@ -151,17 +135,7 @@ export const getPublicProfileService = async ({
         throw new NotFoundError("User not found");
     }
 
-    return {
-        username: user.username,
-        givenname: user.givenname,
-        surname: user.surname,
-        email: user.email,
-        contactNumber: user.contactNumber,
-        gender: user.gender,
-        address: user.address,
-        birthdate: user.birthdate,
-        profile: await getProfilePictureUrl(user.profilePicture),
-    };
+    return toProfileDto(user);
 };
 
 export const deleteAccountService = async (
@@ -174,7 +148,7 @@ export const deleteAccountService = async (
     if (user.loginMethod === "local") {
         if (!password) throw new BadRequestError("Password is required");
 
-        const hash = await userRepository.findPasswordHashByUserId(userId);
+        const hash = await authRepository.findPasswordHashByUserId(userId);
         const ok = hash ? await bcrypt.compare(password, hash) : false;
         if (!ok) throw new BadRequestError("Incorrect password");
     } else {

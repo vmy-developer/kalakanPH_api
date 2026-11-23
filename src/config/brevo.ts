@@ -1,10 +1,6 @@
-import dotenv from "dotenv";
+import { env } from "./env";
+import { retry } from "./retry";
 import logger from "../common/utils/log/logger";
-dotenv.config({ quiet: true });
-
-const RETRY_INTERVAL = 5000;
-const MAX_RETRIES = 5;
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const BREVO_BASE_URL = "https://api.brevo.com/v3";
 
@@ -25,23 +21,16 @@ const parseSender = (value: string): MailSender => {
     return { email: value.trim() };
 };
 
-export const getMailConfig = () => {
-    const apiKey = process.env.BREVO_API_KEY;
-    const from = process.env.MAIL_FROM;
-
-    if (!apiKey) {
-        throw new Error("BREVO_API_KEY is not configured.");
-    }
-    if (!from) {
-        throw new Error("MAIL_FROM is not configured.");
-    }
-
-    return { apiKey, from: parseSender(from) };
+const mailConfig = {
+    apiKey: env.BREVO_API_KEY,
+    from: parseSender(env.MAIL_FROM),
 };
 
-const verifyMailer = async (apiKey: string): Promise<void> => {
+export const getMailConfig = () => mailConfig;
+
+const verifyMailer = async (): Promise<void> => {
     const response = await fetch(`${BREVO_BASE_URL}/account`, {
-        headers: { "api-key": apiKey, accept: "application/json" },
+        headers: { "api-key": mailConfig.apiKey, accept: "application/json" },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
@@ -53,8 +42,7 @@ const verifyMailer = async (apiKey: string): Promise<void> => {
 
 export const checkMailer = async (): Promise<boolean> => {
     try {
-        const { apiKey } = getMailConfig();
-        await verifyMailer(apiKey);
+        await verifyMailer();
         return true;
     } catch {
         return false;
@@ -62,23 +50,8 @@ export const checkMailer = async (): Promise<boolean> => {
 };
 
 const connectMailer = async (): Promise<void> => {
-    const { apiKey } = getMailConfig();
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            await verifyMailer(apiKey);
-            logger.log("🛫 Mailer (Brevo) ready");
-            return;
-        } catch (error) {
-            logger.error(
-                `💥 Mailer check failed (${attempt}/${MAX_RETRIES}):`,
-                error,
-            );
-            if (attempt === MAX_RETRIES) throw error;
-            logger.log(`🔄 Retrying in ${RETRY_INTERVAL / 1000} seconds...`);
-            await sleep(RETRY_INTERVAL);
-        }
-    }
+    await retry(verifyMailer, { label: "Mailer" });
+    logger.log("🛫 Mailer (Brevo) ready");
 };
 
 export default connectMailer;

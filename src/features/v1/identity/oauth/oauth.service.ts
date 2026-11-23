@@ -1,18 +1,21 @@
-import jwt from "jsonwebtoken";
 import userRepository from "../user/user.repository";
 import {
     BadRequestError,
     ConflictError,
-    UnauthorizedError,
 } from "../../../../common/error/errorStatusCode";
 import { GoogleLoginInput, GoogleRegisterInput } from "./dtos/oauth.data.dto";
 import oauthRepository from "./oauth.repository";
 import { verifyGoogleToken } from "../../../../common/utils/google/verifyGoogleToken";
-import { SignupPayload } from "./types/oauth.interface";
-import { pool } from "../../../../config/database";
-
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) throw new Error("JWT_SECRET is not defined");
+import { withTransaction } from "../../../../common/utils/database/withTransaction";
+import {
+    assertUserUnique,
+    mapUniqueViolation,
+} from "../user/types/user.uniqueness";
+import {
+    signSignupToken,
+    verifySignupToken,
+} from "../../../../common/utils/auth/token";
+import { toContactNumber } from "../../../../common/phone/phone";
 
 export const googleLoginService = async ({ idToken }: GoogleLoginInput) => {
     const g = await verifyGoogleToken(idToken);
@@ -23,21 +26,22 @@ export const googleLoginService = async ({ idToken }: GoogleLoginInput) => {
         return { status: "logged_in" as const, userId, email: g.email };
     }
 
-    if (await userRepository.findExistingEmail(g.email)) {
+    const emailConflicts = await userRepository.findConflicts({
+        email: g.email,
+    });
+    if (emailConflicts.length > 0) {
         throw new ConflictError(
             "This email is registered with a password. Please log in with email and password.",
         );
     }
 
-    const payload: SignupPayload = {
+    const signupToken = signSignupToken({
         googleId: g.googleId,
         email: g.email,
         givenname: g.givenname,
         surname: g.surname,
         picture: g.picture,
-        purpose: "google-signup",
-    };
-    const signupToken = jwt.sign(payload, JWT_SECRET, { expiresIn: "10m" });
+    });
 
     return {
         status: "needs_profile" as const,
@@ -60,15 +64,7 @@ export const googleRegisterService = async ({
     phoneNumber,
     address,
 }: GoogleRegisterInput) => {
-    let payload: SignupPayload;
-    try {
-        payload = jwt.verify(signupToken, JWT_SECRET) as SignupPayload;
-        if (payload.purpose !== "google-signup") throw new Error();
-    } catch {
-        throw new UnauthorizedError(
-            "Signup session expired, please sign in with Google again",
-        );
-    }
+    const payload = verifySignupToken(signupToken);
 
     const finalGivenname = payload.givenname || givenname;
     const finalSurname = payload.surname || surname;
@@ -76,42 +72,34 @@ export const googleRegisterService = async ({
         throw new BadRequestError("Given name and surname are required");
     }
 
-    const contactNumber = `+63${phoneNumber}`;
-    const client = await pool.connect();
+    const contactNumber = toContactNumber(phoneNumber);
 
     try {
-        await client.query("BEGIN");
+        const user = await withTransaction(async (client) => {
+            await assertUserUnique(
+                { username, email: payload.email, contactNumber },
+                { client },
+            );
 
-        if (await userRepository.findExistingUsername(username, client))
-            throw new ConflictError("Username already exists");
-        if (await userRepository.findExistingEmail(payload.email, client))
-            throw new ConflictError("Email already exists");
-        if (
-            await userRepository.findExistingContactNumber(
-                contactNumber,
+            const created = await userRepository.create(
+                {
+                    loginMethod: "oauth",
+                    username,
+                    email: payload.email,
+                    contactNumber,
+                    givenname: finalGivenname,
+                    surname: finalSurname,
+                    gender,
+                    address,
+                    birthdate,
+                    profilePicture: payload.picture,
+                },
                 client,
-            )
-        )
-            throw new ConflictError("Contact number already exists");
+            );
 
-        const user = await userRepository.create(
-            {
-                loginMethod: "oauth",
-                username,
-                email: payload.email,
-                contactNumber,
-                givenname: finalGivenname,
-                surname: finalSurname,
-                gender,
-                address,
-                birthdate,
-                profilePicture: payload.picture,
-            },
-            client,
-        );
-
-        await oauthRepository.create(user.id, payload.googleId, client);
-        await client.query("COMMIT");
+            await oauthRepository.create(created.id, payload.googleId, client);
+            return created;
+        });
 
         return {
             userId: user.id,
@@ -120,14 +108,6 @@ export const googleRegisterService = async ({
             isVerified: true,
         };
     } catch (error) {
-        await client.query("ROLLBACK").catch(() => undefined);
-        if ((error as { code?: string }).code === "23505") {
-            throw new ConflictError(
-                "Username, email or contact number already exists",
-            );
-        }
-        throw error;
-    } finally {
-        client.release();
+        throw mapUniqueViolation(error);
     }
 };

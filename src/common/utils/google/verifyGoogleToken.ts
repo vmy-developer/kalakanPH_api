@@ -1,9 +1,9 @@
 import { OAuth2Client } from "google-auth-library";
+import { env } from "../../../config/env";
 import { UnauthorizedError } from "../../error/errorStatusCode";
 import type { GoogleIdentity } from "../../../features/v1/identity/oauth/types/oauth.interface";
 
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-if (!CLIENT_ID) throw new Error("GOOGLE_CLIENT_ID is not defined");
+const CLIENT_ID = env.GOOGLE_CLIENT_ID;
 
 const client = new OAuth2Client(CLIENT_ID);
 

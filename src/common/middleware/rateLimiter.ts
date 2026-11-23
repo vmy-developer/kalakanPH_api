@@ -1,6 +1,7 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { RedisStore, type RedisReply } from "rate-limit-redis";
 import { redis } from "../../config/redis";
+import { HOUR_MS, MINUTE_MS } from "../constants/constants";
 
 type RedisClient = typeof redis;
 
@@ -56,17 +57,17 @@ export function createLimiters(client: RedisClient) {
 
     return {
         register: make("register", {
-            windowMs: 60 * 60_000,
+            windowMs: HOUR_MS,
             limit: 20,
         }),
-        verify: make("verify", { windowMs: 15 * 60_000, limit: 20 }),
+        verify: make("verify", { windowMs: 15 * MINUTE_MS, limit: 20 }),
         resendVerification: make("resend-verification", {
-            windowMs: 60 * 60_000,
+            windowMs: HOUR_MS,
             limit: 3,
             byEmail: true,
         }),
         login: make("login", {
-            windowMs: 15 * 60_000,
+            windowMs: 15 * MINUTE_MS,
             limit: 10,
             byEmail: true,
         }),

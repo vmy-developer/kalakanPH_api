@@ -1,33 +1,29 @@
-import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import type { Request, RequestHandler } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 import { UnauthorizedError } from "../error/errorStatusCode";
+import { verifySession } from "../utils/auth/token";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-    throw new Error("JWT_SECRET is not defined");
-}
-
-interface TokenPayload {
-    userId: string;
-}
-
-export const authenticate = (
-    req: Request,
-    _res: Response,
-    next: NextFunction,
-): void => {
-    const token = (req.cookies as Record<string, string | undefined>).jwt;
+// Body/query are `any` so `authenticate` composes with `validate(...)` handlers
+// whose req.body / req.query are typed from a schema.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export const authenticate: RequestHandler<ParamsDictionary, any, any, any> = (
+    req,
+    _res,
+    next,
+) => {
+    const token = (
+        (req as Request).cookies as Record<string, string | undefined>
+    ).jwt;
 
     if (!token) {
         return next(new UnauthorizedError("Not authenticated"));
     }
 
     try {
-        const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
-        req.user = { id: payload.userId };
+        req.user = { id: verifySession(token) };
         next();
-    } catch {
-        next(new UnauthorizedError("Invalid or expired session"));
+    } catch (error) {
+        next(error);
     }
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */

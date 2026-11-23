@@ -67,12 +67,8 @@ export const DeleteAccountSchema = z
         message: "Password or Google token is required",
     });
 
-export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;
-
-export type UsernameParamInput = z.infer<typeof UsernameParamSchema>;
-
-export type SearchUsersInput = z.infer<typeof SearchUsersSchema>;
-
-export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
-
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
+export type SearchUsersInput = z.infer<typeof SearchUsersSchema>;
+export type UsernameParamInput = z.infer<typeof UsernameParamSchema>;
+export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;

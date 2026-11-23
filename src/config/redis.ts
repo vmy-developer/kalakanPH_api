@@ -1,12 +1,10 @@
-import "dotenv/config";
 import { createClient } from "redis";
+import { env } from "./env";
+import { retry } from "./retry";
 import logger from "../common/utils/log/logger";
 
-const RETRY_INTERVAL = 5000;
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export const redis = createClient({
-    url: process.env.REDIS_URL ?? "redis://localhost:6379",
+    url: env.REDIS_URL,
     disableOfflineQueue: true,
     socket: {
         reconnectStrategy: (retries) => Math.min(retries * 100, 3000),
@@ -23,21 +21,19 @@ redis.on("error", (err: unknown) => {
 redis.on("reconnecting", () => logger.warn("🔄 Redis reconnecting..."));
 redis.on("end", () => logger.warn("🔻 Redis disconnected"));
 
-export const connectRedis = async (): Promise<void> => {
-    while (true) {
-        try {
-            if (!redis.isOpen) await redis.connect();
-            await redis.ping();
-            logger.log("🛫 Redis connected");
-            return;
-        } catch (error) {
-            logger.error("💥 Redis initial connection failed:", error);
-            logger.log(`🔄 Retrying in ${RETRY_INTERVAL / 1000} seconds...`);
-
-            if (redis.isOpen) await redis.disconnect().catch(() => {});
-            await sleep(RETRY_INTERVAL);
-        }
+const openRedis = async (): Promise<void> => {
+    try {
+        if (!redis.isOpen) await redis.connect();
+        await redis.ping();
+    } catch (error) {
+        if (redis.isOpen) await redis.disconnect().catch(() => {});
+        throw error;
     }
+};
+
+export const connectRedis = async (): Promise<void> => {
+    await retry(openRedis, { label: "Redis", attempts: Infinity });
+    logger.log("🛫 Redis connected");
 };
 
 export const checkRedis = async (): Promise<boolean> => {

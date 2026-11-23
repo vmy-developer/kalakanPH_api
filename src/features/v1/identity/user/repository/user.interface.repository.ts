@@ -4,20 +4,20 @@ import type {
     CreateUserInput,
     UpdateUserInput,
     UserSearchResult,
+    UniqueField,
+    UniqueFields,
 } from "../types/user.interface";
 
 export interface IUserRepository {
-    findExistingUsername(
-        username: string,
+    /**
+     * One query; returns which of the given fields already belong to another
+     * user (optionally ignoring `excludeId`). Order: username, email, contactNumber.
+     */
+    findConflicts(
+        fields: UniqueFields,
+        excludeId?: string,
         client?: PoolClient,
-    ): Promise<boolean>;
-
-    findExistingContactNumber(
-        contactNumber: string,
-        client?: PoolClient,
-    ): Promise<boolean>;
-
-    findExistingEmail(email: string, client?: PoolClient): Promise<boolean>;
+    ): Promise<UniqueField[]>;
 
     create(data: CreateUserInput, client?: PoolClient): Promise<IUser>;
 
@@ -29,34 +29,11 @@ export interface IUserRepository {
         client?: PoolClient,
     ): Promise<IUser | null>;
 
-    isUsernameTakenByOther(
-        username: string,
-        userId: string,
-        client?: PoolClient,
-    ): Promise<boolean>;
-
-    isContactNumberTakenByOther(
-        contactNumber: string,
-        userId: string,
-        client?: PoolClient,
-    ): Promise<boolean>;
-
     updatePicture(
         id: string,
         path: string,
         client?: PoolClient,
     ): Promise<string | null>;
-
-    findPasswordHashByUserId(
-        userId: string,
-        client?: PoolClient,
-    ): Promise<string | null>;
-
-    updatePasswordHash(
-        userId: string,
-        passwordHash: string,
-        client?: PoolClient,
-    ): Promise<void>;
 
     search(
         query: string,

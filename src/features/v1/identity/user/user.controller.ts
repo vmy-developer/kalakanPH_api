@@ -1,83 +1,81 @@
 import type { Request, Response } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 import * as userService from "./user.service";
-import {
+import type {
     ChangePasswordInput,
     DeleteAccountInput,
     SearchUsersInput,
     UpdateProfileInput,
     UsernameParamInput,
 } from "./dtos/user.data.dto";
-import { clearAuthCookie } from "../../../../common/middleware/setAuthCookie";
+
+import { getUserId } from "../../../../common/http/request";
+import { sendOk } from "../../../../common/http/response";
+import { clearAuthCookie } from "../../../../common/utils/auth/authCookie";
 
 export const getProfileController = async (
     req: Request,
     res: Response,
 ): Promise<void> => {
-    const data = await userService.getProfileService(req.user!.id);
-    res.status(200).json({ data });
+    const data = await userService.getProfileService(getUserId(req));
+    sendOk(res, { data });
 };
 
 export const updateProfileController = async (
-    req: Request,
+    req: Request<ParamsDictionary, unknown, UpdateProfileInput>,
     res: Response,
 ): Promise<void> => {
     const data = await userService.updateProfileService(
-        req.user!.id,
-        req.body as UpdateProfileInput,
+        getUserId(req),
+        req.body,
     );
-    res.status(200).json({ message: "Profile updated successfully", data });
+    sendOk(res, { message: "Profile updated successfully", data });
 };
 
 export const updatePictureController = async (
     req: Request,
     res: Response,
 ): Promise<void> => {
-    const data = await userService.updatePictureService(req.user!.id, req.file);
-    res.status(200).json({ message: "Profile picture updated", data });
+    const data = await userService.updatePictureService(
+        getUserId(req),
+        req.file,
+    );
+    sendOk(res, { message: "Profile picture updated", data });
 };
 
 export const changePasswordController = async (
-    req: Request,
+    req: Request<ParamsDictionary, unknown, ChangePasswordInput>,
     res: Response,
 ): Promise<void> => {
-    await userService.changePasswordService(
-        req.user!.id,
-        req.body as ChangePasswordInput,
-    );
-    res.status(200).json({ message: "Password changed successfully" });
+    await userService.changePasswordService(getUserId(req), req.body);
+    sendOk(res, { message: "Password changed successfully" });
 };
 
 export const searchUsersController = async (
-    req: Request,
+    req: Request<ParamsDictionary, unknown, unknown, SearchUsersInput>,
     res: Response,
 ): Promise<void> => {
     const data = await userService.searchUsersService(
-        req.user!.id,
-        req.query as unknown as SearchUsersInput,
+        getUserId(req),
+        req.query,
     );
-    res.status(200).json({ data });
+    sendOk(res, { data });
 };
 
 export const getPublicProfileController = async (
-    req: Request,
+    req: Request<UsernameParamInput>,
     res: Response,
 ): Promise<void> => {
-    const data = await userService.getPublicProfileService(
-        req.params as UsernameParamInput,
-    );
-    res.status(200).json({ data });
+    const data = await userService.getPublicProfileService(req.params);
+    sendOk(res, { data });
 };
 
 export const deleteAccountController = async (
-    req: Request,
+    req: Request<ParamsDictionary, unknown, DeleteAccountInput>,
     res: Response,
 ): Promise<void> => {
-    await userService.deleteAccountService(
-        req.user!.id,
-        req.body as DeleteAccountInput,
-    );
+    await userService.deleteAccountService(getUserId(req), req.body);
 
     clearAuthCookie(res);
-
-    res.status(200).json({ message: "Account deleted successfully" });
+    sendOk(res, { message: "Account deleted successfully" });
 };

@@ -1,6 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config({ quiet: true });
-
+import { env } from "./config/env";
 import app from "./app";
 import connectDB, { disconnectDB } from "./config/database";
 import connectMailer from "./config/brevo";
@@ -9,7 +7,7 @@ import { connectStorage } from "./config/storage";
 import { startCleanup, stopCleanup } from "./common/utils/database/cleanup";
 import logger from "./common/utils/log/logger";
 
-const PORT = process.env.PORT || 5000;
+const PORT = env.PORT;
 
 const start = async () => {
     try {

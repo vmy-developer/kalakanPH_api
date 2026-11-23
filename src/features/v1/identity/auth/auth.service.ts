@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 
 import type {
     LoginInput,
@@ -8,24 +7,37 @@ import type {
 } from "./dtos/auth.data.dto";
 import userRepository from "../user/user.repository";
 import authRepository from "./auth.repository";
-import type { IUser } from "../user/types/user.interface";
-import type { IAuth } from "./types/auth.interface";
 import {
     BadRequestError,
-    ConflictError,
     UnauthorizedError,
 } from "../../../../common/error/errorStatusCode";
-import { pool } from "../../../../config/database";
+import { withTransaction } from "../../../../common/utils/database/withTransaction";
 import { sendVerificationEmail } from "../../../../common/utils/mail/sendVerificationEmail";
-import { sendInBackground } from "../../../../common/utils/mail/sendMail";
+import { fireAndForget } from "../../../../common/utils/mail/sendMail";
 import {
     deleteProfilePicture,
-    getProfilePictureUrl,
     uploadProfilePicture,
 } from "../../../../common/utils/storage/profilePicture.storage";
 import { sendWelcomeEmail } from "../../../../common/utils/mail/sendWelcomeEmail";
+import { toProfileDto } from "../user/types/user.mapper";
+import {
+    assertUserUnique,
+    mapUniqueViolation,
+} from "../user/types/user.uniqueness";
+import {
+    BCRYPT_ROUNDS,
+    UNVERIFIED_ACCOUNT_TTL_MS,
+    VERIFICATION_TOKEN_TTL_MS,
+} from "../../../../common/constants/constants";
+import { toContactNumber } from "../../../../common/phone/phone";
+import crypto from "crypto";
 
-const DUMMY_HASH = bcrypt.hashSync("dummy-password", 10);
+const DUMMY_HASH = bcrypt.hashSync("dummy-password", BCRYPT_ROUNDS);
+
+const createVerificationToken = () => ({
+    token: crypto.randomBytes(32).toString("hex"),
+    expiry: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
+});
 
 export const registerService = async (
     {
@@ -41,100 +53,71 @@ export const registerService = async (
     }: RegisterData,
     profilePicture?: Express.Multer.File,
 ) => {
-    const passwordHash = await bcrypt.hash(password, 10);
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const verificationTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
-    const unverifiedExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const contactNumber = `+63${phoneNumber}`;
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const verification = createVerificationToken();
+    const unverifiedExpiresAt = new Date(
+        Date.now() + UNVERIFIED_ACCOUNT_TTL_MS,
+    );
+    const contactNumber = toContactNumber(phoneNumber);
 
     const picturePath = profilePicture
         ? await uploadProfilePicture(profilePicture)
         : null;
 
-    const client = await pool.connect();
-
-    let user: IUser;
-    let auth: IAuth;
-
+    let created;
     try {
-        await client.query("BEGIN");
+        created = await withTransaction(async (client) => {
+            await assertUserUnique(
+                { username, email, contactNumber },
+                { client },
+            );
 
-        if (await userRepository.findExistingUsername(username, client)) {
-            throw new ConflictError("Username already exists");
-        }
-        if (await userRepository.findExistingEmail(email, client)) {
-            throw new ConflictError("Email already exists");
-        }
-        if (
-            await userRepository.findExistingContactNumber(
-                contactNumber,
+            const user = await userRepository.create(
+                {
+                    loginMethod: "local",
+                    username,
+                    email,
+                    contactNumber,
+                    givenname,
+                    surname,
+                    gender,
+                    address,
+                    birthdate,
+                    profilePicture: picturePath,
+                },
                 client,
-            )
-        ) {
-            throw new ConflictError("Contact number already exists");
-        }
+            );
 
-        user = await userRepository.create(
-            {
-                loginMethod: "local",
-                username,
-                email,
-                contactNumber,
-                givenname,
-                surname,
-                gender,
-                address,
-                birthdate,
-                profilePicture: picturePath,
-            },
-            client,
-        );
+            const auth = await authRepository.create(
+                {
+                    userId: user.id,
+                    passwordHash,
+                    verificationToken: verification.token,
+                    verificationTokenExpiry: verification.expiry,
+                    unverifiedExpiresAt,
+                },
+                client,
+            );
 
-        auth = await authRepository.create(
-            {
-                userId: user.id,
-                passwordHash,
-                verificationToken,
-                verificationTokenExpiry,
-                unverifiedExpiresAt,
-            },
-            client,
-        );
-
-        await client.query("COMMIT");
+            return { user, auth };
+        });
     } catch (error) {
-        await client.query("ROLLBACK").catch(() => undefined);
-
         if (picturePath) {
             await deleteProfilePicture(picturePath).catch(() => undefined);
         }
-
-        if ((error as { code?: string }).code === "23505") {
-            throw new ConflictError(
-                "Username, email or contact number already exists",
-            );
-        }
-        throw error;
-    } finally {
-        client.release();
+        throw mapUniqueViolation(error);
     }
 
-    sendInBackground(
+    const { user, auth } = created;
+
+    fireAndForget(
         "verification",
-        sendVerificationEmail(email, username, verificationToken),
+        sendVerificationEmail(email, username, verification.token),
     );
 
     return {
         userId: user.id,
-        username: user.username,
-        givenname: user.givenname,
-        surname: user.surname,
-        profile: await getProfilePictureUrl(user.profilePicture),
-        birthdate: user.birthdate,
-        gender: user.gender,
-        contactNumber: user.contactNumber,
-        address: user.address,
-        email: user.email,
+        ...(await toProfileDto(user)),
         isVerified: auth.isVerified,
     };
 };
@@ -146,19 +129,18 @@ export const verifyEmailService = async ({ token }: VerifyEmailInput) => {
         throw new BadRequestError("Invalid or expired verification link");
     }
 
-    sendInBackground("welcome", sendWelcomeEmail(user.email, user.username));
+    fireAndForget("welcome", sendWelcomeEmail(user.email, user.username));
 
     return { userId: user.userId, isVerified: true };
 };
 
 export const resendVerificationService = async (userId: string) => {
-    const token = crypto.randomBytes(32).toString("hex");
-    const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
+    const { token, expiry } = createVerificationToken();
 
     const user = await authRepository.refreshVerificationTokenByUserId(
         userId,
         token,
-        tokenExpiry,
+        expiry,
     );
 
     if (!user) {

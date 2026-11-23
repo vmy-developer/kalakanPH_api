@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { PROFILE_BUCKET, supabase } from "../../../config/storage";
+import { PROFILE_PICTURE_URL_TTL_SECONDS } from "../../constants/constants";
 
 const EXT: Record<string, string> = {
     "image/jpeg": "jpeg",
@@ -34,6 +35,6 @@ export const getProfilePictureUrl = async (
 
     const { data } = await supabase.storage
         .from(PROFILE_BUCKET)
-        .createSignedUrl(path, 60 * 60);
+        .createSignedUrl(path, PROFILE_PICTURE_URL_TTL_SECONDS);
     return data?.signedUrl ?? null;
 };

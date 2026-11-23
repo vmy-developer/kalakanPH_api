@@ -142,6 +142,24 @@ const authRepository: IAuthRepository = {
         );
     },
 
+    findPasswordHashByUserId: async (userId, client) => {
+        const { rows } = await getExecutor(client).query<{
+            passwordHash: string;
+        }>(
+            `SELECT password_hash AS "passwordHash"
+         FROM identity.auth WHERE user_id = $1`,
+            [userId],
+        );
+        return rows[0]?.passwordHash ?? null;
+    },
+
+    updatePasswordHash: async (userId, passwordHash, client) => {
+        await getExecutor(client).query(
+            `UPDATE identity.auth SET password_hash = $2 WHERE user_id = $1`,
+            [userId, passwordHash],
+        );
+    },
+
     isVerified: async (userId, client) => {
         const { rows } = await getExecutor(client).query<{
             isVerified: boolean;

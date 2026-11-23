@@ -1,19 +1,16 @@
-import dotenv from "dotenv";
-dotenv.config({ quiet: true });
-
-const isDev = process.env.NODE_ENV === "development";
+import { isDevelopment } from "../../../config/env";
 
 const logger = {
     log: (...args: unknown[]): void => {
-        if (isDev) console.log(...args);
+        if (isDevelopment) console.log(...args);
     },
 
     warn: (...args: unknown[]): void => {
-        if (isDev) console.warn(...args);
+        if (isDevelopment) console.warn(...args);
     },
 
     error: (...args: unknown[]): void => {
-        if (isDev) console.error(...args);
+        if (isDevelopment) console.error(...args);
     },
 };
 

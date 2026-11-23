@@ -5,10 +5,13 @@ import {
 } from "../../../config/brevo";
 import logger from "../log/logger";
 
-export interface MailOptions {
-    to: string;
+export interface MailContent {
     subject: string;
     html: string;
+}
+
+export interface MailOptions extends MailContent {
+    to: string;
 }
 
 export const sendMail = async ({ to, subject, html }: MailOptions) => {
@@ -38,7 +41,7 @@ export const sendMail = async ({ to, subject, html }: MailOptions) => {
     }
 };
 
-export const sendInBackground = (label: string, task: Promise<unknown>) => {
+export const fireAndForget = (label: string, task: Promise<unknown>) => {
     task.catch((error) => {
         logger.error(`📧 Failed to send ${label} email:`, error);
     });
